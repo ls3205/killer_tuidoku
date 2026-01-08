@@ -33,7 +33,12 @@ pub fn render(frame: &mut Frame, state: &mut AppState) {
 
     Block::bordered()
         .border_type(ratatui::widgets::BorderType::Rounded)
-        .title(" tuidoku ".to_span().into_centered_line().fg(Color::White))
+        .title(
+            " killer_tuidoku "
+                .to_span()
+                .into_centered_line()
+                .fg(Color::White),
+        )
         .title_bottom(
             keybindinator(
                 vec![
@@ -43,6 +48,7 @@ pub fn render(frame: &mut Frame, state: &mut AppState) {
                     (String::from("Right"), String::from("[l]")),
                     (String::from("Clear Cell"), String::from("[x]")),
                     (String::from("Write Cell"), String::from("[1-9]")),
+                    (String::from("Select Mode"), String::from("[v]")),
                     (String::from("Solve"), String::from("[Enter]")),
                 ],
                 Color::Green,

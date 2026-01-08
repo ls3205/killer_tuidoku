@@ -15,6 +15,11 @@ pub struct AppState {
     sol_state: SolState,
     cursor_loc: BoardLoc,
     table_state: TableState,
+    select_state: bool,
+    select_input_state: bool,
+    select_input_val: String,
+    select_vec: Vec<(u8, u8)>,
+    select_store: Vec<(Vec<(u8, u8)>, u8)>,
 }
 
 #[derive(Default, Debug, PartialEq)]
