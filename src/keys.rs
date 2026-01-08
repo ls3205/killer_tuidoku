@@ -80,7 +80,10 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
                 state.board[state.cursor_loc.y as usize][state.cursor_loc.x as usize] = 0;
             }
             'v' => {
-                state.select_state = true;
+                if let Some((row, col)) = state.table_state.selected_cell() {
+                    state.select_state = true;
+                    state.select_vec.push((row as u8, col as u8));
+                }
             }
             'd' => {
                 // TODO: this is gonna be the most inneficient way to do this possible LOL
@@ -111,6 +114,18 @@ fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
                 };
 
                 state.table_state.select(Some(state.cursor_loc.y as usize));
+
+                if let Some((row, col)) = state.table_state.selected_cell() {
+                    let cell = (row as u8, col as u8);
+                    if state.select_vec.last() == Some(&cell) {
+                        state.select_vec.pop();
+                    } else if state.select_vec.contains(&cell) {
+                        state.cursor_loc.y -= 1;
+                        state.table_state.select(Some(state.cursor_loc.y as usize));
+                    } else {
+                        state.select_vec.push(cell);
+                    }
+                }
             }
             'k' => {
                 state.cursor_loc.y = if state.cursor_loc.y > 0 {
@@ -120,6 +135,18 @@ fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
                 };
 
                 state.table_state.select(Some(state.cursor_loc.y as usize));
+
+                if let Some((row, col)) = state.table_state.selected_cell() {
+                    let cell = (row as u8, col as u8);
+                    if state.select_vec.last() == Some(&cell) {
+                        state.select_vec.pop();
+                    } else if state.select_vec.contains(&cell) {
+                        state.cursor_loc.y += 1;
+                        state.table_state.select(Some(state.cursor_loc.y as usize));
+                    } else {
+                        state.select_vec.push(cell);
+                    }
+                }
             }
             'h' => {
                 state.cursor_loc.x = if state.cursor_loc.x > 0 {
@@ -131,6 +158,20 @@ fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
                 state
                     .table_state
                     .select_column(Some(state.cursor_loc.x as usize));
+
+                if let Some((row, col)) = state.table_state.selected_cell() {
+                    let cell = (row as u8, col as u8);
+                    if state.select_vec.last() == Some(&cell) {
+                        state.select_vec.pop();
+                    } else if state.select_vec.contains(&cell) {
+                        state.cursor_loc.x += 1;
+                        state
+                            .table_state
+                            .select_column(Some(state.cursor_loc.x as usize));
+                    } else {
+                        state.select_vec.push(cell);
+                    }
+                }
             }
             'l' => {
                 state.cursor_loc.x = if state.cursor_loc.x < 8 {
@@ -142,6 +183,20 @@ fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
                 state
                     .table_state
                     .select_column(Some(state.cursor_loc.x as usize));
+
+                if let Some((row, col)) = state.table_state.selected_cell() {
+                    let cell = (row as u8, col as u8);
+                    if state.select_vec.last() == Some(&cell) {
+                        state.select_vec.pop();
+                    } else if state.select_vec.contains(&cell) {
+                        state.cursor_loc.x -= 1;
+                        state
+                            .table_state
+                            .select_column(Some(state.cursor_loc.x as usize));
+                    } else {
+                        state.select_vec.push(cell);
+                    }
+                }
             }
             _ => {}
         },

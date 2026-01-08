@@ -1,3 +1,4 @@
+use color_eyre::owo_colors::OwoColorize;
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout},
@@ -72,7 +73,7 @@ fn render_board(frame: &mut Frame, state: &mut AppState) {
     Block::bordered()
         .border_type(ratatui::widgets::BorderType::HeavyDoubleDashed)
         .fg(Color::Green)
-        .title("Input".to_span().into_centered_line())
+        .title(" Input ".to_span().into_centered_line())
         .render(area[0], frame.buffer_mut());
 
     // i swear to you the hardest part about learning a new frontend tool is figuring out how to
@@ -104,15 +105,21 @@ fn render_board(frame: &mut Frame, state: &mut AppState) {
         );
 
     let table = Table::new(
-        state.board.iter().map(|row| {
+        state.board.iter().enumerate().map(|(y, row)| {
             Row::new(
                 row.iter()
-                    .map(|cell| {
-                        if *cell == 0 {
+                    .enumerate()
+                    .map(|(x, cell)| {
+                        let content = if *cell == 0 {
                             "-".to_string()
                         } else {
                             cell.to_string()
-                        }
+                        };
+                        content.bg(if state.select_vec.contains(&(y as u8, x as u8)) {
+                            Color::Blue
+                        } else {
+                            Color::default()
+                        })
                     })
                     .collect::<Vec<_>>(),
             )
@@ -127,7 +134,7 @@ fn render_board(frame: &mut Frame, state: &mut AppState) {
     Block::bordered()
         .border_type(ratatui::widgets::BorderType::LightDoubleDashed)
         .fg(Color::default())
-        .title("Solution".to_span().into_centered_line())
+        .title(" Solution ".to_span().into_centered_line())
         .title_bottom(match state.sol_state {
             SolState::NULL => "".to_span().into_centered_line(),
             SolState::FOUND => " Solution Found "
