@@ -20,6 +20,7 @@ pub struct AppState {
     select_input_val: String,
     select_vec: Vec<(u8, u8)>,
     select_store: Vec<(Vec<(u8, u8)>, u8)>,
+    highlighted_set: Vec<(u8, u8)>,
 }
 
 #[derive(Default, Debug, PartialEq)]

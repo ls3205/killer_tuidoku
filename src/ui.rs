@@ -1,11 +1,10 @@
-use color_eyre::owo_colors::OwoColorize;
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Flex, Layout},
     prelude::Widget,
     style::{Color, Style, Stylize},
     text::{Span, ToSpan},
-    widgets::{Block, Row, Table},
+    widgets::{Block, Padding, Paragraph, Row, Table},
 };
 
 use crate::{AppState, SolState};
@@ -61,6 +60,10 @@ pub fn render(frame: &mut Frame, state: &mut AppState) {
         .render(border_area, frame.buffer_mut());
 
     render_board(frame, state);
+
+    if state.select_input_state {
+        render_cage_input(frame, state);
+    }
 }
 
 fn render_board(frame: &mut Frame, state: &mut AppState) {
@@ -74,6 +77,22 @@ fn render_board(frame: &mut Frame, state: &mut AppState) {
         .border_type(ratatui::widgets::BorderType::HeavyDoubleDashed)
         .fg(Color::Green)
         .title(" Input ".to_span().into_centered_line())
+        .title_bottom(
+            if let Some(cage) = state.select_store.iter().find(|cage| {
+                cage.0.contains(&(
+                    state.table_state.selected_cell().unwrap().0 as u8,
+                    state.table_state.selected_cell().unwrap().1 as u8,
+                ))
+            }) {
+                let cage_total = cage.1; // TODO: fix this
+                String::from("Cage Total: ".to_owned() + &cage_total.to_string())
+                    .to_span()
+                    .fg(Color::default())
+                    .into_centered_line()
+            } else {
+                String::from("").to_span().into_centered_line()
+            },
+        )
         .render(area[0], frame.buffer_mut());
 
     // i swear to you the hardest part about learning a new frontend tool is figuring out how to
@@ -117,6 +136,15 @@ fn render_board(frame: &mut Frame, state: &mut AppState) {
                         };
                         content.bg(if state.select_vec.contains(&(y as u8, x as u8)) {
                             Color::Blue
+                        } else if state.highlighted_set.contains(&(y as u8, x as u8)) {
+                            Color::Yellow
+                        } else if state.select_state
+                            && state
+                                .select_store
+                                .iter()
+                                .any(|cage| cage.0.contains(&(y as u8, x as u8)))
+                        {
+                            Color::Red
                         } else {
                             Color::default()
                         })
@@ -194,4 +222,35 @@ fn render_board(frame: &mut Frame, state: &mut AppState) {
 
     frame.render_stateful_widget(table, board_area, &mut state.table_state);
     frame.render_widget(sol, sol_area);
+}
+
+fn render_cage_input(frame: &mut Frame, state: &mut AppState) {
+    let area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(100), Constraint::Percentage(100)])
+        .flex(Flex::Center)
+        .split(frame.area())[0]
+        .centered(Constraint::Length(40), Constraint::Length(5));
+
+    Paragraph::new(state.select_input_val.clone() + "|")
+        .fg(Color::default())
+        .block(
+            Block::bordered()
+                .border_type(ratatui::widgets::BorderType::Rounded)
+                .fg(Color::Green)
+                .padding(Padding::uniform(1))
+                .title("Cage Total".to_span().fg(Color::default()))
+                .title_bottom(
+                    keybindinator(
+                        vec![
+                            (String::from("Cancel"), String::from("[Esc]")),
+                            (String::from("Submit"), String::from("[Enter]")),
+                        ],
+                        Color::Green,
+                        Color::Yellow,
+                    )
+                    .alignment(Alignment::Center),
+                ),
+        )
+        .render(area, frame.buffer_mut());
 }

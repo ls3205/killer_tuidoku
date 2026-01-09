@@ -21,6 +21,20 @@ pub fn handler(state: &mut AppState) -> bool {
 }
 
 fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
+    fn update_highlight(state: &mut AppState) {
+        let sel_cell = state.table_state.selected_cell().unwrap();
+
+        if let Some(active_cage) = state
+            .select_store
+            .iter()
+            .find(|cage| cage.0.contains(&(sel_cell.0 as u8, sel_cell.1 as u8)))
+        {
+            state.highlighted_set = active_cage.0.clone();
+        } else {
+            state.highlighted_set.clear();
+        }
+    }
+
     match k.code {
         event::KeyCode::Esc => return true,
         event::KeyCode::Enter => {
@@ -44,6 +58,7 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
                 };
 
                 state.table_state.select(Some(state.cursor_loc.y as usize));
+                update_highlight(state);
             }
             'k' => {
                 state.cursor_loc.y = if state.cursor_loc.y > 0 {
@@ -53,6 +68,7 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
                 };
 
                 state.table_state.select(Some(state.cursor_loc.y as usize));
+                update_highlight(state);
             }
             'h' => {
                 state.cursor_loc.x = if state.cursor_loc.x > 0 {
@@ -64,6 +80,7 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
                 state
                     .table_state
                     .select_column(Some(state.cursor_loc.x as usize));
+                update_highlight(state);
             }
             'l' => {
                 state.cursor_loc.x = if state.cursor_loc.x < 8 {
@@ -75,18 +92,25 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
                 state
                     .table_state
                     .select_column(Some(state.cursor_loc.x as usize));
+                update_highlight(state);
             }
             'x' => {
                 state.board[state.cursor_loc.y as usize][state.cursor_loc.x as usize] = 0;
             }
             'v' => {
-                if let Some((row, col)) = state.table_state.selected_cell() {
+                if let Some((row, col)) = state.table_state.selected_cell()
+                    && !state
+                        .select_store
+                        .iter()
+                        .any(|cage| cage.0.contains(&(row as u8, col as u8)))
+                {
                     state.select_state = true;
                     state.select_vec.push((row as u8, col as u8));
                 }
             }
             'd' => {
                 // TODO: this is gonna be the most inneficient way to do this possible LOL
+                update_highlight(state);
             }
             _ => {}
         },
@@ -117,12 +141,10 @@ fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
 
                 if let Some((row, col)) = state.table_state.selected_cell() {
                     let cell = (row as u8, col as u8);
-                    if state.select_vec.last() == Some(&cell) {
-                        state.select_vec.pop();
-                    } else if state.select_vec.contains(&cell) {
+                    if state.select_store.iter().any(|cage| cage.0.contains(&cell)) {
                         state.cursor_loc.y -= 1;
                         state.table_state.select(Some(state.cursor_loc.y as usize));
-                    } else {
+                    } else if !state.select_vec.contains(&cell) {
                         state.select_vec.push(cell);
                     }
                 }
@@ -138,12 +160,10 @@ fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
 
                 if let Some((row, col)) = state.table_state.selected_cell() {
                     let cell = (row as u8, col as u8);
-                    if state.select_vec.last() == Some(&cell) {
-                        state.select_vec.pop();
-                    } else if state.select_vec.contains(&cell) {
+                    if state.select_store.iter().any(|cage| cage.0.contains(&cell)) {
                         state.cursor_loc.y += 1;
                         state.table_state.select(Some(state.cursor_loc.y as usize));
-                    } else {
+                    } else if !state.select_vec.contains(&cell) {
                         state.select_vec.push(cell);
                     }
                 }
@@ -161,14 +181,12 @@ fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
 
                 if let Some((row, col)) = state.table_state.selected_cell() {
                     let cell = (row as u8, col as u8);
-                    if state.select_vec.last() == Some(&cell) {
-                        state.select_vec.pop();
-                    } else if state.select_vec.contains(&cell) {
+                    if state.select_store.iter().any(|cage| cage.0.contains(&cell)) {
                         state.cursor_loc.x += 1;
                         state
                             .table_state
                             .select_column(Some(state.cursor_loc.x as usize));
-                    } else {
+                    } else if !state.select_vec.contains(&cell) {
                         state.select_vec.push(cell);
                     }
                 }
@@ -186,14 +204,12 @@ fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
 
                 if let Some((row, col)) = state.table_state.selected_cell() {
                     let cell = (row as u8, col as u8);
-                    if state.select_vec.last() == Some(&cell) {
-                        state.select_vec.pop();
-                    } else if state.select_vec.contains(&cell) {
+                    if state.select_store.iter().any(|cage| cage.0.contains(&cell)) {
                         state.cursor_loc.x -= 1;
                         state
                             .table_state
                             .select_column(Some(state.cursor_loc.x as usize));
-                    } else {
+                    } else if !state.select_vec.contains(&cell) {
                         state.select_vec.push(cell);
                     }
                 }
@@ -220,6 +236,7 @@ fn handle_select_input(k: KeyEvent, state: &mut AppState) -> bool {
                 state.select_state = false;
 
                 state.select_store.push((state.select_vec.clone(), n));
+                state.highlighted_set = state.select_vec.clone();
                 state.select_vec.clear();
                 state.select_input_val.clear();
             }
@@ -227,7 +244,7 @@ fn handle_select_input(k: KeyEvent, state: &mut AppState) -> bool {
         event::KeyCode::Backspace => {
             state.select_input_val.pop();
         }
-        event::KeyCode::Char(c) => {
+        event::KeyCode::Char(c) if c.is_ascii_digit() => {
             state.select_input_val.push(c);
         }
         _ => {}
