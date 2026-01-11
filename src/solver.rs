@@ -3,7 +3,7 @@ use crate::{AppState, SolState};
 pub fn solve(state: &mut AppState) -> [[u8; 9]; 9] {
     let mut table = state.board;
 
-    if solve_sudoku(&mut table) {
+    if solve_sudoku(&mut table, &state.select_store) {
         state.sol_state = SolState::FOUND;
     } else {
         state.sol_state = SolState::NOTFOUND;
@@ -16,7 +16,7 @@ pub fn solve(state: &mut AppState) -> [[u8; 9]; 9] {
     }
 }
 
-fn solve_sudoku(table: &mut [[u8; 9]; 9]) -> bool {
+fn solve_sudoku(table: &mut [[u8; 9]; 9], cages: &Vec<(Vec<(u8, u8)>, u8)>) -> bool {
     if !table.as_flattened().contains(&0) {
         return true;
     }
@@ -24,10 +24,10 @@ fn solve_sudoku(table: &mut [[u8; 9]; 9]) -> bool {
     let (row, col) = find_empty(table);
 
     for n in 1..=9 {
-        if is_valid(table, row, col, n) {
+        if is_valid(table, cages, row, col, n) {
             table[row][col] = n;
 
-            if solve_sudoku(table) {
+            if solve_sudoku(table, cages) {
                 return true;
             }
 
@@ -50,7 +50,28 @@ fn find_empty(table: &[[u8; 9]; 9]) -> (usize, usize) {
     (0, 0)
 }
 
-fn is_valid(table: &[[u8; 9]; 9], row: usize, col: usize, num: u8) -> bool {
+fn is_valid(
+    table: &[[u8; 9]; 9],
+    cages: &Vec<(Vec<(u8, u8)>, u8)>,
+    row: usize,
+    col: usize,
+    num: u8,
+) -> bool {
+    if let Some(group) = cages
+        .iter()
+        .find(|cage| cage.0.contains(&(row as u8, col as u8)))
+    {
+        let total: u8 = group
+            .0
+            .iter()
+            .map(|(x, y)| table[*y as usize][*x as usize])
+            .sum();
+
+        if total + num > group.1 {
+            return false;
+        }
+    }
+
     if table[row].contains(&num) {
         return false;
     }

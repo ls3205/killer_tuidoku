@@ -29,9 +29,10 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
             .iter()
             .find(|cage| cage.0.contains(&(sel_cell.0 as u8, sel_cell.1 as u8)))
         {
-            state.highlighted_set = active_cage.0.clone();
+            state.highlighted_set = active_cage.clone();
         } else {
-            state.highlighted_set.clear();
+            state.highlighted_set.0.clear();
+            state.highlighted_set.1 = 0;
         }
     }
 
@@ -109,8 +110,14 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
                 }
             }
             'd' => {
-                // TODO: this is gonna be the most inneficient way to do this possible LOL
-                update_highlight(state);
+                if let Some(idx) = state
+                    .select_store
+                    .iter()
+                    .position(|cage| *cage == state.highlighted_set)
+                {
+                    state.select_store.remove(idx);
+                    update_highlight(state);
+                }
             }
             _ => {}
         },
@@ -214,6 +221,50 @@ fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
                     }
                 }
             }
+            'd' => {
+                if let Some((row, col)) = state.table_state.selected_cell() {
+                    let cell = (row as u8, col as u8);
+                    if let Some(idx) = state
+                        .select_vec
+                        .iter()
+                        .position(|cell_store| *cell_store == cell)
+                    {
+                        if cell.0 > 0 && state.select_vec.contains(&(cell.0 - 1, cell.1)) {
+                            state.select_vec.remove(idx);
+
+                            state.cursor_loc.y -= 1;
+                            state.table_state.select_cell(Some((
+                                state.cursor_loc.y as usize,
+                                state.cursor_loc.x as usize,
+                            )));
+                        } else if cell.1 > 0 && state.select_vec.contains(&(cell.0, cell.1 - 1)) {
+                            state.select_vec.remove(idx);
+
+                            state.cursor_loc.x -= 1;
+                            state.table_state.select_cell(Some((
+                                state.cursor_loc.y as usize,
+                                state.cursor_loc.x as usize,
+                            )));
+                        } else if cell.0 < 8 && state.select_vec.contains(&(cell.0 + 1, cell.1)) {
+                            state.select_vec.remove(idx);
+
+                            state.cursor_loc.y += 1;
+                            state.table_state.select_cell(Some((
+                                state.cursor_loc.y as usize,
+                                state.cursor_loc.x as usize,
+                            )));
+                        } else if cell.1 < 8 && state.select_vec.contains(&(cell.0, cell.1 + 1)) {
+                            state.select_vec.remove(idx);
+
+                            state.cursor_loc.x += 1;
+                            state.table_state.select_cell(Some((
+                                state.cursor_loc.y as usize,
+                                state.cursor_loc.x as usize,
+                            )));
+                        }
+                    }
+                }
+            }
             _ => {}
         },
         _ => {}
@@ -236,7 +287,7 @@ fn handle_select_input(k: KeyEvent, state: &mut AppState) -> bool {
                 state.select_state = false;
 
                 state.select_store.push((state.select_vec.clone(), n));
-                state.highlighted_set = state.select_vec.clone();
+                state.highlighted_set = (state.select_vec.clone(), n);
                 state.select_vec.clear();
                 state.select_input_val.clear();
             }
