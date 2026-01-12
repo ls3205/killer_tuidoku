@@ -39,6 +39,7 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
     match k.code {
         event::KeyCode::Esc => return true,
         event::KeyCode::Enter => {
+            state.sol_state = SolState::LOADING;
             state.sol = solver::solve(state);
         }
         event::KeyCode::Char(c) if ('1'..='9').contains(&c) => {

@@ -27,6 +27,7 @@ pub struct AppState {
 pub enum SolState {
     FOUND,
     NOTFOUND,
+    LOADING,
     #[default]
     NULL,
 }

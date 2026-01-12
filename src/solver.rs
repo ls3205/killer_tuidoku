@@ -64,7 +64,7 @@ fn is_valid(
         let total: u8 = group
             .0
             .iter()
-            .map(|(x, y)| table[*y as usize][*x as usize])
+            .map(|(y, x)| table[*y as usize][*x as usize])
             .sum();
 
         if total + num > group.1 {

@@ -158,6 +158,10 @@ fn render_board(frame: &mut Frame, state: &mut AppState) {
         .title(" Solution ".to_span().into_centered_line())
         .title_bottom(match state.sol_state {
             SolState::NULL => "".to_span().into_centered_line(),
+            SolState::LOADING => " Loading (This may take a little) "
+                .to_span()
+                .into_centered_line()
+                .fg(Color::default()),
             SolState::FOUND => " Solution Found "
                 .to_span()
                 .into_centered_line()
