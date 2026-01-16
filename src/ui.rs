@@ -49,6 +49,7 @@ pub fn render(frame: &mut Frame, state: &mut AppState) {
                     (String::from("Clear Cell"), String::from("[x]")),
                     (String::from("Write Cell"), String::from("[1-9]")),
                     (String::from("Select Mode"), String::from("[v]")),
+                    (String::from("Edit Cage"), String::from("[e]")),
                     (String::from("Delete Cage"), String::from("[d]")),
                     (String::from("Solve"), String::from("[Enter]")),
                 ],
@@ -65,6 +66,10 @@ pub fn render(frame: &mut Frame, state: &mut AppState) {
     if state.select_input_state {
         render_cage_input(frame, state);
     }
+
+    if state.confirm_delete {
+        render_confirm_delete(frame);
+    }
 }
 
 fn render_board(frame: &mut Frame, state: &mut AppState) {
@@ -76,8 +81,24 @@ fn render_board(frame: &mut Frame, state: &mut AppState) {
 
     Block::bordered()
         .border_type(ratatui::widgets::BorderType::HeavyDoubleDashed)
-        .fg(Color::Green)
-        .title(" Input ".to_span().into_centered_line())
+        .fg(if state.select_state {
+            Color::Blue
+        } else {
+            Color::Green
+        })
+        .title(
+            (if state.select_state {
+                if state.is_editing {
+                    " Editing Cage "
+                } else {
+                    " Selecting Cage "
+                }
+            } else {
+                " Input "
+            })
+            .to_span()
+            .into_centered_line(),
+        )
         .title_bottom(if state.highlighted_set.1 > 0 {
             (" Cage Total: ".to_span().fg(Color::Green)
                 + state.highlighted_set.1.to_span().fg(Color::default())
@@ -236,12 +257,43 @@ fn render_cage_input(frame: &mut Frame, state: &mut AppState) {
                 .border_type(ratatui::widgets::BorderType::Rounded)
                 .fg(Color::Green)
                 .padding(Padding::uniform(1))
-                .title("Cage Total".to_span().fg(Color::default()))
+                .title(" Cage Total ".to_span().fg(Color::default()))
                 .title_bottom(
                     keybindinator(
                         vec![
                             (String::from("Cancel"), String::from("[Esc]")),
                             (String::from("Submit"), String::from("[Enter]")),
+                        ],
+                        Color::Green,
+                        Color::Yellow,
+                    )
+                    .alignment(Alignment::Center),
+                ),
+        )
+        .render(area, frame.buffer_mut());
+}
+
+fn render_confirm_delete(frame: &mut Frame) {
+    let area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(100), Constraint::Percentage(100)])
+        .flex(Flex::Center)
+        .split(frame.area())[0]
+        .centered(Constraint::Length(40), Constraint::Length(5));
+
+    Paragraph::new("Confirm Cage Deletion".to_span().into_centered_line())
+        .fg(Color::default())
+        .block(
+            Block::bordered()
+                .border_type(ratatui::widgets::BorderType::Rounded)
+                .fg(Color::Green)
+                .padding(Padding::uniform(1))
+                .title(" Confirm ".to_span().fg(Color::default()))
+                .title_bottom(
+                    keybindinator(
+                        vec![
+                            (String::from("Cancel"), String::from("[Esc]")),
+                            (String::from("Confirm"), String::from("[Enter]")),
                         ],
                         Color::Green,
                         Color::Yellow,

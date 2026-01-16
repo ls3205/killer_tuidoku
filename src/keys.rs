@@ -4,6 +4,21 @@ use crate::AppState;
 use crate::SolState;
 use crate::solver;
 
+fn update_highlight(state: &mut AppState) {
+    let sel_cell = state.table_state.selected_cell().unwrap();
+
+    if let Some(active_cage) = state
+        .select_store
+        .iter()
+        .find(|cage| cage.0.contains(&(sel_cell.0 as u8, sel_cell.1 as u8)))
+    {
+        state.highlighted_set = active_cage.clone();
+    } else {
+        state.highlighted_set.0.clear();
+        state.highlighted_set.1 = 0;
+    }
+}
+
 pub fn handler(state: &mut AppState) -> bool {
     if let Ok(Event::Key(k)) = event::read() {
         if state.select_state {
@@ -14,6 +29,10 @@ pub fn handler(state: &mut AppState) -> bool {
             }
         }
 
+        if state.confirm_delete {
+            return handle_delete(k, state);
+        }
+
         return handle_default(k, state);
     }
 
@@ -21,21 +40,6 @@ pub fn handler(state: &mut AppState) -> bool {
 }
 
 fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
-    fn update_highlight(state: &mut AppState) {
-        let sel_cell = state.table_state.selected_cell().unwrap();
-
-        if let Some(active_cage) = state
-            .select_store
-            .iter()
-            .find(|cage| cage.0.contains(&(sel_cell.0 as u8, sel_cell.1 as u8)))
-        {
-            state.highlighted_set = active_cage.clone();
-        } else {
-            state.highlighted_set.0.clear();
-            state.highlighted_set.1 = 0;
-        }
-    }
-
     match k.code {
         event::KeyCode::Esc => return true,
         event::KeyCode::Enter => {
@@ -111,11 +115,25 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
                 }
             }
             'd' => {
+                if state.select_store.contains(&state.highlighted_set) {
+                    state.confirm_delete = true;
+                }
+            }
+            'e' => {
                 if let Some(idx) = state
                     .select_store
                     .iter()
                     .position(|cage| *cage == state.highlighted_set)
                 {
+                    let copy = state.select_store[idx].clone();
+
+                    state.select_vec = copy.0.clone();
+                    state.select_input_val = copy.1.clone().to_string();
+                    state.select_state = true;
+
+                    state.is_editing = true;
+                    state.editing_clone = copy;
+
                     state.select_store.remove(idx);
                     update_highlight(state);
                 }
@@ -131,8 +149,22 @@ fn handle_default(k: KeyEvent, state: &mut AppState) -> bool {
 fn handle_select(k: KeyEvent, state: &mut AppState) -> bool {
     match k.code {
         event::KeyCode::Esc => {
-            state.select_state = false;
-            state.select_vec.clear();
+            if state.is_editing {
+                state.select_state = false;
+                state.is_editing = false;
+
+                state.select_vec.clear();
+                state.select_input_val.clear();
+
+                state.select_store.push(state.editing_clone.clone());
+                state.editing_clone.0.clear();
+                state.editing_clone.1 = 0;
+
+                update_highlight(state);
+            } else {
+                state.select_state = false;
+                state.select_vec.clear();
+            }
         }
         event::KeyCode::Enter => {
             state.select_input_state = true;
@@ -298,6 +330,28 @@ fn handle_select_input(k: KeyEvent, state: &mut AppState) -> bool {
         }
         event::KeyCode::Char(c) if c.is_ascii_digit() => {
             state.select_input_val.push(c);
+        }
+        _ => {}
+    }
+
+    false
+}
+
+fn handle_delete(k: KeyEvent, state: &mut AppState) -> bool {
+    match k.code {
+        event::KeyCode::Esc => {
+            state.confirm_delete = false;
+        }
+        event::KeyCode::Enter => {
+            if let Some(idx) = state
+                .select_store
+                .iter()
+                .position(|cage| *cage == state.highlighted_set)
+            {
+                state.select_store.remove(idx);
+                state.confirm_delete = false;
+                update_highlight(state);
+            }
         }
         _ => {}
     }

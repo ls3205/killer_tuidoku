@@ -21,6 +21,9 @@ pub struct AppState {
     select_vec: Vec<(u8, u8)>,
     select_store: Vec<(Vec<(u8, u8)>, u8)>,
     highlighted_set: (Vec<(u8, u8)>, u8),
+    is_editing: bool,
+    editing_clone: (Vec<(u8, u8)>, u8),
+    confirm_delete: bool,
 }
 
 #[derive(Default, Debug, PartialEq)]
